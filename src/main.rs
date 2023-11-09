@@ -1,12 +1,25 @@
 mod handlers;
-use axum::routing::{get, Router};
+use axum::routing::{get, post, Router};
+use sqlx::postgres::PgPoolOptions;
+use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let port = std::env::var("PORT").unwrap_or("4000".to_string());
     let addr = format!("0.0.0.0:{}", port);
 
-    let app = Router::new().route("/", get(handlers::health));
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await
+        .expect("Failed to connect to Postgres");
+
+    let app = Router::new()
+        .route("/", get(handlers::health))
+        .route("/quotes", post(handlers::create_quote))
+        .with_state(pool);
     axum::Server::bind(&addr.parse().unwrap())
         .serve(app.into_make_service())
         .await
