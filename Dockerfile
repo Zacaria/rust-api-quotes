@@ -13,8 +13,15 @@ FROM lukemathwalker/cargo-chef:latest-rust-${RUST_VERSION}-alpine AS chef
 WORKDIR /app
 
 FROM chef AS planner
-COPY . .
-RUN cargo chef prepare --recipe-path recipe.json
+RUN --mount=type=bind,source=src,target=src \
+    --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
+    --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
+    --mount=type=cache,target=/app/target/ \
+    --mount=type=cache,target=/usr/local/cargo/registry/ \
+    <<EOF
+set -e
+cargo chef prepare --recipe-path recipe.json 
+EOF
 
 FROM chef AS builder 
 COPY --from=planner /app/recipe.json recipe.json
