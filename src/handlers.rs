@@ -111,3 +111,25 @@ pub async fn update_quote(
 
     Ok((http::StatusCode::OK, axum::Json(new_quote)))
 }
+
+pub async fn delete_quote(
+    extract::Path(id): extract::Path<uuid::Uuid>,
+    extract::State(pool): extract::State<PgPool>,
+) -> Result<http::StatusCode, http::StatusCode> {
+    let res = sqlx::query(
+        r#"
+        DELETE FROM quotes
+        WHERE id = $1
+        "#,
+    )
+    .bind(&id)
+    .execute(&pool)
+    .await
+    .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?
+    .rows_affected();
+
+    match res {
+        0 => Err(http::StatusCode::NOT_FOUND),
+        _ => Ok(http::StatusCode::NO_CONTENT),
+    }
+}
