@@ -30,6 +30,12 @@ pub struct CreateQuote {
     quote: String,
 }
 
+#[derive(serde::Deserialize, Debug)]
+pub struct UpdateQuote {
+    book: Option<String>,
+    quote: Option<String>,
+}
+
 pub async fn health() -> http::StatusCode {
     println!("Health check");
     http::StatusCode::OK
@@ -76,4 +82,32 @@ pub async fn read_quotes(
         Ok(quotes) => Ok(axum::Json(quotes)),
         Err(_) => Err(http::StatusCode::INTERNAL_SERVER_ERROR),
     }
+}
+
+pub async fn update_quote(
+    extract::Path(id): extract::Path<uuid::Uuid>,
+    extract::State(pool): extract::State<PgPool>,
+    axum::Json(payload): axum::Json<UpdateQuote>,
+) -> Result<(http::StatusCode, axum::Json<Quote>), http::StatusCode> {
+    let res = sqlx::query(
+        r#"
+        UPDATE quotes
+        SET book = $1, quote = $2
+        WHERE id = $3
+        RETURNING id, book, quote, inserted_at, updated_at
+        "#,
+    )
+    .bind(&payload.book)
+    .bind(&payload.quote)
+    .bind(&id)
+    .fetch_optional(&pool)
+    .await
+    // Err variant
+    .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?
+    // None variant
+    .ok_or(http::StatusCode::NOT_FOUND)?;
+
+    let new_quote = Quote::from_row(&res).map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    Ok((http::StatusCode::OK, axum::Json(new_quote)))
 }
