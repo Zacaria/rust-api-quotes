@@ -12,3 +12,15 @@ Create first migration :
 
 Run migration :
 `sqlx migrate run`
+
+## Test
+
+`curl http://localhost:8080/quotes`
+
+```sh
+curl -svS \
+-H 'Content-Type: application/json' \
+-X POST \
+-d '{"book": "gotttt","quote": "yeééé"}' \
+http://localhost:8080/quotes
+```

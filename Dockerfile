@@ -7,9 +7,7 @@
 ################################################################################
 # Create a stage for building the application.
 
-ARG RUST_VERSION=1.73.0
-
-FROM lukemathwalker/cargo-chef:latest-rust-${RUST_VERSION}-alpine AS chef
+FROM lukemathwalker/cargo-chef:latest-rust-alpine AS chef
 WORKDIR /app
 
 FROM chef AS planner
